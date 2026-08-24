@@ -1,0 +1,849 @@
+/* style.css — брендовані стилі ESCORE для генератора КП.
+   Кольори приблизно зняті піпеткою з референсного КП. */
+
+:root{
+  --green: #05554B; /* фірмовий зелений, знятий піпеткою з кола в логотипі ESCORE */
+  --green-dark: #043C35;
+  --ink: #16201F; /* темний navy-чорний фону футера/підсумку */
+  --ink-2: #2A3634;
+  --tint: #E7EFED; /* світлий відтінок фірмового зеленого для карток */
+  --tint-2: #F3F6F5;
+  --line: #E1E6E2;
+  --text: #1B1F1E;
+  --text-muted: #5B6864;
+  --white: #FFFFFF;
+  --radius: 10px;
+  --page-w: 1123px;
+  --page-h: 794px;
+  --page-pad: 46px;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text);
+  background: #ECEFED;
+}
+.form-shell{
+  max-width: 760px;
+  margin: 24px auto;
+  background: var(--white);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.form-shell h1{
+  font-size: 20px;
+  margin: 0 0 4px;
+}
+.form-shell p.sub{
+  color: var(--text-muted);
+  margin: 0 0 22px;
+  font-size: 14px;
+}
+.field{ margin-bottom: 16px; }
+.field label{
+  display:block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: var(--ink-2);
+}
+.field .hint{
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.field input[type=text],
+.field input[type=number],
+.field input[type=url]{
+  width:100%;
+  padding: 9px 11px;
+  border:1px solid #D3D9D5;
+  border-radius:8px;
+  font-size:14px;
+}
+.field input[type=file]{ font-size: 13px; }
+.mode-toggle{ display:flex; gap:10px; }
+.mode-opt{
+  display:flex; align-items:center; gap:7px;
+  padding:8px 16px;
+  border:1px solid #D3D9D5;
+  border-radius:8px;
+  font-size:14px;
+  cursor:pointer;
+  user-select:none;
+}
+.mode-opt input{ margin:0; accent-color: var(--green); }
+.mode-opt:has(input:checked){
+  border-color: var(--green);
+  background: var(--tint);
+  font-weight:600;
+}
+.field label.checkbox-field{
+  display:flex; align-items:center; gap:9px;
+  padding:8px 16px;
+  border:1px solid #D3D9D5;
+  border-radius:8px;
+  font-size:14px; font-weight:500;
+  color: var(--ink-2);
+  cursor:pointer; user-select:none;
+  margin-bottom:0;
+  width:fit-content;
+}
+.field label.checkbox-field:has(input:checked){
+  border-color: var(--green);
+  background: var(--tint);
+  font-weight:600;
+}
+.field label.checkbox-field input{ margin:0; accent-color: var(--green); width:16px; height:16px; }
+.row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.row3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.dropzone{
+  position: relative;
+  border: 2px dashed #D3D9D5;
+  border-radius: 8px;
+  padding: 14px 12px;
+  text-align: center;
+  background: var(--tint-2);
+  transition: border-color .15s, background .15s;
+}
+.dropzone.drag{ border-color: var(--green); background: var(--tint); }
+.dropzone input[type=file]{
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  opacity: 0; cursor: pointer;
+}
+.dropzone-hint{ font-size: 12px; color: var(--text-muted); pointer-events: none; }
+.dropzone-filename{ font-size: 12.5px; color: var(--ink-2); font-weight: 600; margin-top: 4px; pointer-events: none; }
+.btn{
+  display:inline-block;
+  background: var(--green);
+  color:#fff;
+  border:none;
+  padding: 11px 22px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor:pointer;
+}
+.btn:hover{ background: var(--green-dark); }
+.btn.secondary{
+  background: transparent;
+  color: var(--ink-2);
+  border: 1px solid #D3D9D5;
+}
+.btn.secondary:hover{ background: var(--tint-2); }
+.actions{ display:flex; gap:12px; margin-top: 22px; align-items:center; }
+.status-msg{ font-size: 13px; color: var(--text-muted); }
+.status-msg.error{ color:#B3261E; }
+.thumb-list{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.thumb-list img{ width:74px; height:74px; object-fit:cover; border-radius:6px; border:1px solid #D3D9D5; }
+#kp-doc{ display:none; }
+#kp-doc.ready{ display:block; }
+.kp-page{
+  width: var(--page-w);
+  min-height: var(--page-h);
+  margin: 24px auto;
+  background: var(--white);
+  padding: var(--page-pad);
+  position: relative;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+.kp-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  border-bottom: 3px solid var(--green);
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+}
+.kp-header img.logo{ height: 30px; }
+.kp-header .doc-meta{ text-align:right; font-size:12.5px; color: var(--text-muted); line-height:1.5; }
+.kp-header .doc-meta strong{ color:var(--ink); font-size:13.5px; letter-spacing:.04em; }
+.kp-eyebrow{
+  color: var(--green-dark);
+  font-size: 12.5px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:8px;
+}
+.kp-title{
+  font-size: 33px;
+  font-weight: 800;
+  line-height:1.22;
+  margin: 0 0 14px;
+  color: var(--ink);
+}
+.kp-desc{ font-size:15px; line-height:1.6; color:#333; margin-bottom:18px; }
+.kp-desc b{ color:var(--ink); }
+.meta-grid{
+  display:grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.meta-grid > div{
+  background: var(--tint);
+  border-left: 3px solid var(--green);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+.meta-grid .k{ color:var(--text-muted); font-size:12.5px; text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;}
+.meta-grid .v{ font-weight:800; font-size:23px; color:var(--ink); }
+.hero-caption-title{ font-size:18px; font-weight:800; color:var(--ink); margin-bottom:10px; }
+.hero-img{
+  width:100%;
+  border-radius: var(--radius);
+  overflow:hidden;
+  border:1px solid var(--line);
+  margin-bottom: 8px;
+  background:#f2f2f2;
+}
+.hero-img img{ width:100%; display:block; }
+.caption{ font-size:12px; color:var(--text-muted); margin-bottom:18px; }
+.cover-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.cover-page .hero-img{
+  flex:1; min-height:0;
+  display:flex; align-items:center; justify-content:center;
+}
+.cover-page .hero-img img{ width:auto; height:100%; max-width:100%; object-fit:contain; }
+
+/* "Додаткова сторінка" (запит Анни, 2026-08-14). Презентація: кожен скрін —
+   окремий слайд; той самий "вміститись у сторінку" підхід, що й у cover-page
+   (фіксована висота + object-fit:contain), щоб будь-який скрін масштабувався
+   в межі слайда. */
+.extra-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.extra-page .extra-img{
+  flex:1; min-height:0;
+  display:flex; align-items:center; justify-content:center; margin-top:14px;
+}
+.extra-page .extra-img img{ width:auto; height:100%; max-width:100%; object-fit:contain; border-radius:8px; }
+/* Документ / Документ з малюнками: скріни стопкою, кожен не розривається між
+   сторінками, висота обмежена, щоб вертикальний скрін не переповнював лист. */
+.doc-img-wrap.doc-extra-img{ page-break-inside:avoid; break-inside:avoid; margin:0 0 12px; }
+.doc-img-wrap.doc-extra-img img{ max-width:100%; max-height:230mm; object-fit:contain; }
+.stat-cards{
+  display:grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.stat-cards.cols-1{ grid-template-columns: repeat(1,1fr); }
+.stat-cards.cols-2{ grid-template-columns: repeat(2,1fr); }
+.stat-cards.cols-3{ grid-template-columns: repeat(3,1fr); }
+.stat-cards.cols-4{ grid-template-columns: repeat(4,1fr); }
+.stat-card{
+  border:1px solid var(--line);
+  border-left: 3px solid var(--green);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.stat-card .num{ font-size:22px; font-weight:800; color: var(--ink); }
+.stat-card .lbl{ font-size:12px; color:var(--text-muted); margin-top:2px; }
+.fin-month-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 20px;
+  border:1px solid var(--line);
+  border-left: 3px solid var(--green);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-top: 16px;
+}
+.fin-month-card .lbl{ font-size:13.5px; color:var(--text-muted); margin-bottom:4px; }
+.fin-month-card .val{ font-size:26px; font-weight:800; color:var(--ink); }
+.fin-month-card select{
+  flex:none;
+  font-size:14px;
+  font-weight:600;
+  padding:8px 12px;
+  border:1px solid var(--line);
+  border-radius:6px;
+  background:var(--white);
+  color:var(--ink);
+}
+.fin-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.fin-content{ flex:1; min-height:0; display:flex; flex-direction:column; justify-content:space-between; }
+.section-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size: 23px;
+  font-weight:800;
+  color: var(--ink);
+  margin: 0 0 18px;
+}
+.section-title .num-badge{
+  width:30px; height:30px; border-radius:7px;
+  background:var(--tint); color:var(--green-dark);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; font-weight:800;
+}
+.section-title .accent{ color: var(--green); }
+.shading-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.shading-layout{
+  display:grid;
+  grid-template-columns: 1fr 1.7fr;
+  gap: 40px;
+  align-items:stretch;
+  flex: 1;
+  min-height: 0;
+  margin-top: 18px;
+}
+.shading-timeline{
+  position:relative;
+  padding-left: 24px;
+  align-self: start;
+}
+.shading-timeline::before{
+  content:"";
+  position:absolute;
+  left:4px; top:6px; bottom:6px;
+  width:2px;
+  background: var(--line);
+}
+.shading-item{
+  position:relative;
+  font-size:15px;
+  font-weight:700;
+  line-height:1.4;
+  color: var(--ink);
+  padding: 12px 0;
+}
+.shading-item .dot{
+  position:absolute;
+  left:-24px; top:16px;
+  width:11px; height:11px;
+  border-radius:50%;
+  background: var(--tint);
+  border:2px solid var(--green);
+}
+.shading-img{
+  height:100%;
+  display:flex; align-items:flex-end; justify-content:center;
+  border-radius: var(--radius);
+  overflow:hidden;
+  border:1px solid var(--line);
+  background:#fff;
+}
+.shading-img img{ width:auto; height:100%; max-width:100%; object-fit:contain; display:block; }
+.kp-body p{ font-size:15px; line-height:1.65; color:#2b2f2e; }
+.gallery{
+  display:grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.gallery figure{ margin:0; }
+.gallery img{ width:100%; border-radius:8px; border:1px solid var(--line); display:block; }
+.gallery figcaption{ font-size:12px; color:var(--text-muted); margin-top:4px; }
+.split-list{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 28px;
+  margin-top: 6px;
+}
+.spec-item{ font-size:14px; line-height:1.5; padding-left:14px; position:relative; }
+.spec-item::before{
+  content:"◆"; color: var(--green); font-size:9px;
+  position:absolute; left:0; top:5px;
+}
+.spec-item b{ display:block; color:var(--ink); }
+table.kp-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size: 13px;
+}
+table.kp-table th{
+  background: var(--ink);
+  color:#fff;
+  text-align:left;
+  padding:8px 9px;
+  font-size:11.5px;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+}
+table.kp-table th.num, table.kp-table td.num{ text-align:right; }
+table.kp-table td{
+  padding:7px 9px;
+  border-bottom:1px solid var(--line);
+}
+table.kp-table tr.cat td{
+  background: var(--tint);
+  font-weight:700;
+  color: var(--ink);
+}
+table.kp-table tr.grand td{
+  font-weight:800;
+  border-top:2px solid var(--ink);
+}
+.budget-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.budget-layout{
+  display:grid;
+  grid-template-columns: 3.6fr 1fr;
+  gap: 20px;
+  align-items:start;
+  flex: 1;
+  min-height: 0;
+  margin-top: 4px;
+}
+table.budget-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size: 12.5px;
+}
+.budget-table-wrap{ flex:1; min-height:0; margin-top:4px; }
+/* ВИДАЛЕНО (2026-07-23, повторний звіт Анни): раніше тут стояло
+   `table.budget-table{ height:100%; }` — примусово розтягувало таблицю на
+   всю висоту сторінки-продовження. Це мало сенс у СТАРІЙ схемі (жорстко
+   2 сторінки, друга — завжди щільно заповнена Кабельною продукцією+
+   Роботами+підсумками). Тепер, з динамічною пагінацією (paginateBudgetSections
+   у kp-render.js), сторінка-продовження може мати ЛИШЕ кілька рядків (напр.
+   хвіст "Роботи" або просто підсумки) — і браузер, розтягуючи auto-layout
+   таблицю без tbody-рядків (чи з малою їх кількістю) на висоту сторінки,
+   розподіляв зайву висоту МІЖ рядками (роздуваючи їх, "розтягнуті рядки"),
+   а tfoot з підсумками "спливав" аж до низу сторінки, лишаючи порожнє біле
+   поле між останнім рядком і підсумками. Тепер таблиця має природну висоту
+   (сідає зверху), а зайвий простір під нею — це просто порожнє поле СТОРІНКИ
+   (нижче таблиці), а не "розтягнутий" вміст самої таблиці — рядки завжди
+   нормального розміру, підсумки завжди одразу під останнім рядком. */
+table.budget-table th{
+  background: #EEF1F0;
+  color: var(--ink);
+  text-align:center;
+  padding:5px 12px;
+  font-size:12px;
+  font-weight:700;
+  line-height:1.25;
+  border-bottom: 1.5px solid var(--line);
+}
+table.budget-table th:first-child{ text-align:center; }
+table.budget-table th.num{ text-align:center; }
+table.budget-table td{
+  padding:4px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align:middle;
+  text-align:center;
+}
+table.budget-table td.num{ text-align:center; }
+table.budget-table tbody tr:last-child td{ border-bottom:none; }
+/* Горизонтальний підзаголовок блоку бюджету (переверстано 2026-07-27,
+   запит Анни — замість старої вертикальної мержованої колонки .budget-cat,
+   поверненої на 90°): назва блоку ліворуч (colspan 2), ціна блоку праворуч
+   (колонка "Вартість"); верхня лінія відділяє блоки один від одного. */
+table.budget-table td.budget-cat{
+  text-align:left;
+  font-weight:800;
+}
+table.budget-table tr.budget-cat-row td{
+  border-top: 2px solid var(--line);
+  font-weight:800;
+}
+table.budget-table tr.budget-cat-row:first-child td{ border-top:none; }
+table.budget-table .budget-price{
+  text-align:center;
+  font-weight:800;
+  font-size:13.5px;
+}
+table.budget-table .grp-equip{ background: transparent; }
+table.budget-table .grp-works{ background: transparent; }
+table.budget-table .grp-mat{ background: transparent; }
+/* Виділення підзаголовків блоків (запит менеджерів, 2026-07-27): рядок-
+   підзаголовок помітно темніший за свої позиції — так назва блоку чітко
+   відділяється від переліку. Разом із жирним шрифтом і верхньою лінією
+   (вище) блок читається одразу. */
+table.budget-table tr.budget-cat-row.grp-equip td,
+table.budget-table tr.budget-cat-row.grp-works td{ background: transparent; }
+table.budget-table tr.budget-cat-row.grp-mat td{ background: transparent; }
+table.budget-table tfoot tr.sum{ background: transparent; font-weight:700; font-size:13.5px; }
+table.budget-table tfoot tr.sum td{ border-bottom: 1px solid var(--line); text-align:center; padding:6px 14px; color: var(--ink); }
+table.budget-table tfoot tr.sum:first-child td{ border-top: 2px solid var(--line); }
+table.budget-table tfoot tr.sum.grand{ background: transparent; font-size:15px; font-weight:800; }
+table.budget-table tfoot tr.sum.grand td{ border-bottom:none; }
+table.budget-table tfoot tr.sum td.sum-label{ text-align:left; padding-left:12px; }
+table.budget-table [contenteditable]{ cursor:text; }
+table.budget-table td[contenteditable]:hover{ background: rgba(255,255,255,.16); }
+table.budget-table td[contenteditable]:focus{ outline:2px solid #fff; outline-offset:-2px; background: rgba(255,255,255,.24); }
+table.budget-table .budget-price span[contenteditable]:hover{ background: rgba(255,255,255,.16); }
+table.budget-table .budget-price span[contenteditable]:focus{ outline:2px solid #fff; outline-offset:-2px; background: rgba(255,255,255,.24); }
+.budget-notes{ display:flex; flex-direction:column; gap:16px; }
+.budget-notes .note{ display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.55; color:#2b2f2e; }
+.budget-notes .note > div{ text-align:center; }
+.budget-notes .note b{ color:var(--ink); }
+.budget-notes .chk{
+  flex:none; width:20px; height:20px; border-radius:50%;
+  background: var(--tint); color:var(--green-dark);
+  display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800;
+  margin-top:1px;
+}
+.cost-box{
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  overflow:hidden;
+  margin-top: 10px;
+}
+.cost-row{ display:flex; justify-content:space-between; padding:11px 16px; font-size:14.5px; border-bottom:1px solid var(--line);}
+.cost-row.total{ background: var(--ink); color:#fff; font-weight:800; font-size:16.5px; }
+.pay-split{ display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;}
+.pay-card{ border:1px solid var(--line); border-radius:8px; padding:12px 14px;}
+.pay-card .amt{ font-size:19px; font-weight:800; color:var(--ink); }
+.pay-card .lbl{ font-size:11.5px; color:var(--text-muted); text-transform:uppercase; }
+.benefit-strip{
+  display:grid; grid-template-columns: 1.2fr 1fr; gap:12px; margin-top:16px;
+}
+.benefit-box{ border-radius:8px; padding:16px; }
+.benefit-box.green{ background: transparent; color: var(--ink); border:1px solid var(--line); }
+.benefit-box.dark{ background: var(--ink); color:#fff; }
+.benefit-box .big{ font-size:30px; font-weight:800; }
+.benefit-box .cap{ font-size:12.5px; text-transform:uppercase; letter-spacing:.05em; opacity:.85; margin-bottom:4px; }
+.benefit-box .sub{ font-size:12px; opacity:.85; margin-top:6px; }
+.chart-wrap{ margin-top:46px; border:1px solid var(--line); border-radius:var(--radius); padding:22px 16px 16px; }
+.chart-wrap canvas{ max-height:340px; }
+.seasonal-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.seasonal-chart-wrap{
+  flex: 1;
+  min-height: 0;
+  margin-top: 10px;
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 20px 10px;
+  position: relative;
+}
+.seasonal-chart-wrap canvas{ width:100% !important; height:100% !important; }
+.warranty-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.warranty-page .logo{ height:28px; display:block; margin-bottom:24px; align-self:flex-start; }
+.warranty-banner{
+  background: transparent; color: var(--ink);
+  font-size:26px; font-weight:800;
+  padding:16px var(--page-pad);
+  margin: 0 calc(-1 * var(--page-pad)) 0;
+  border-bottom: 2px solid var(--line);
+}
+.warranty-table-wrap{ margin: 0 calc(-1 * var(--page-pad)); flex:1; min-height:0; overflow:hidden; }
+table.warranty-table{
+  width:100%;
+  height:100%;
+  border-collapse:collapse;
+  font-size: 15px;
+}
+table.warranty-table th{
+  background: #4C7A72;
+  color:#fff;
+  text-align:left;
+  padding:14px var(--page-pad);
+  font-size:15px;
+  font-weight:700;
+}
+table.warranty-table td{
+  padding:12px var(--page-pad);
+  border-bottom:1px solid var(--line);
+  color:#2b2f2e;
+  vertical-align:middle;
+}
+table.warranty-table td:first-child{ font-weight:700; color:var(--ink); }
+table.warranty-table td.wu, table.warranty-table td.wu-life{
+  text-align:center;
+  color: var(--text-muted);
+  border-left: 1px solid var(--line);
+}
+table.warranty-table td.wu-life{ font-weight:800; color:var(--ink); font-size:16px; }
+table.warranty-table td[contenteditable]{ cursor:text; }
+table.warranty-table td[contenteditable]:hover{ background: var(--tint); }
+table.warranty-table td[contenteditable]:focus{ outline:2px solid var(--green); outline-offset:-2px; background: var(--tint-2); }
+.manager-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.manager-page .logo{ height:26px; display:block; margin-bottom:40px; align-self:flex-start; }
+.manager-body{ display:flex; gap:100px; align-items:flex-start; flex:1; min-height:0; max-width:1030px; margin:0 auto; width:100%; }
+.manager-photo-col{ flex: 0 0 400px; }
+.manager-photo{
+  width:100%;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--radius);
+  overflow:hidden;
+  background:#eee;
+}
+.manager-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.manager-name{ font-size:27px; font-weight:800; color:var(--green-dark); margin-top:18px; }
+.manager-role{ font-size:19px; color:var(--text-muted); font-weight:600; margin-top:4px; }
+.manager-contacts{ flex:1; padding-top: 0; display:flex; flex-direction:column; gap:150.8px; justify-content:flex-start; }
+.manager-contacts .mc-row{ display:flex; gap:64px; }
+.manager-contacts .mc-row > .mc-block:last-child{ margin-left:auto; }
+.manager-contacts .mc-title{ font-size:23px; font-weight:800; color:var(--green-dark); margin-bottom:9px; }
+.manager-contacts .mc-val{ font-size:23px; color:var(--ink); line-height:1.5; }
+.manager-contacts .mc-val a{ color:var(--ink); text-decoration: underline; }
+.terms-list{ margin-top:8px; }
+.terms-list .t-row{ display:flex; gap:10px; padding:10px 0; border-bottom:1px dashed var(--line); font-size:14px;}
+.terms-list .t-row b{ min-width:150px; color:var(--ink); }
+.kp-footer{
+  position:absolute; left:var(--page-pad); right:var(--page-pad); bottom: var(--page-pad);
+  display:flex; justify-content:space-between; align-items:flex-end;
+  padding-top: 14px; border-top:1px solid var(--line);
+  font-size:12px; color:var(--text-muted);
+}
+.footer-dark{
+  background: var(--ink); color:#fff; border-radius:var(--radius);
+  padding:18px 20px; display:flex; justify-content:space-between; margin-top:22px;
+}
+.footer-dark .fname{ font-weight:800; font-size:17px; }
+.footer-dark .fsub{ font-size:12.5px; opacity:.8; margin-top:2px; }
+.footer-dark .fcontact{ text-align:right; font-size:13px; line-height:1.6; }
+.disclaimer{ font-size:11.5px; color:var(--text-muted); margin-top:14px; line-height:1.55; }
+.hero-page{ padding:0; overflow:hidden; }
+.hero-bg{
+  position:absolute; inset:0;
+  background-size:cover; background-position:center;
+}
+.hero-overlay{
+  position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(10,18,14,0) 38%, rgba(8,14,11,.78) 100%);
+}
+.hero-logo{ position:absolute; top:40px; left:46px; height:32px; z-index:2; }
+.hero-title{
+  position:absolute; left:46px; bottom:52px; z-index:2;
+  color:#fff; font-size:40px; font-weight:800; line-height:1.2;
+  max-width:60%; text-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.why-page{ display:flex; flex-direction:column; height: var(--page-h); overflow:hidden; }
+.why-banner{
+  background: transparent; color: var(--ink);
+  font-size:28px; font-weight:800;
+  padding:16px var(--page-pad);
+  margin: calc(-1 * var(--page-pad)) calc(-1 * var(--page-pad)) 26px;
+  border-bottom: 2px solid var(--line);
+}
+.why-body{ display:flex; gap:36px; flex:1; min-height:0; align-items:center; }
+.why-cert{ flex: 0 0 320px; align-self:center; }
+.why-cert img{ width:100%; height:auto; max-height:520px; object-fit:contain; border-radius:10px; border:1px solid var(--line); display:block; }
+.why-content{ flex:1; display:flex; flex-direction:column; justify-content:center; min-width:0; }
+.why-point{ display:flex; align-items:flex-start; gap:12px; font-size:18px; font-weight:600; color:var(--ink); margin-bottom:18px; }
+.why-point .chk{
+  flex:none; width:26px; height:26px; border-radius:50%;
+  background: var(--tint); color:var(--green-dark);
+  display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:800;
+}
+.why-logos{ display:grid; grid-template-columns: repeat(2,1fr); gap: 20px 26px; margin-top:16px; }
+.logo-tile{
+  height: 128px;
+  display:flex; align-items:center; justify-content:center;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding: 12px 20px;
+}
+.logo-tile img{ max-width:100%; max-height:100%; object-fit:contain; }
+
+.doc-root{
+  width: 780px;
+  margin: 24px auto;
+  background: var(--white);
+  padding: 48px 56px 60px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text);
+}
+.doc-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  border-bottom: 3px solid var(--green);
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+}
+.doc-header img.logo{ height: 30px; }
+.doc-company{ font-size:12.5px; color:var(--text-muted); margin-top:6px; }
+.doc-meta{ text-align:right; font-size:12.5px; color: var(--text-muted); line-height:1.5; }
+.doc-meta strong{ color:var(--ink); font-size:14px; letter-spacing:.03em; }
+.doc-title{ font-size:19px; font-weight:800; color:var(--ink); margin:0 0 22px; }
+.doc-section{ margin: 0 0 26px; }
+.doc-section h2{
+  font-size:14px;
+  font-weight:800;
+  color: var(--ink);
+  background: transparent;
+  padding:8px 0;
+  border-bottom: 2px solid var(--line);
+  margin:0 0 12px;
+}
+.doc-preamble p{ margin:0 0 10px; }
+.doc-preamble p:last-child{ margin-bottom:0; }
+table.doc-table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px;
+}
+table.doc-table th{
+  background: var(--tint);
+  color:var(--ink);
+  text-align:left;
+  padding:7px 10px;
+  font-weight:700;
+  border-bottom:2px solid var(--green);
+}
+table.doc-table th.num{ text-align:right; }
+table.doc-table td{
+  padding:6px 10px;
+  border-bottom:1px solid var(--line);
+}
+table.doc-table td.num{ text-align:right; white-space:nowrap; }
+table.doc-table tr{ page-break-inside: avoid; }
+table.doc-table tbody tr:last-child td{ border-bottom:none; }
+/* Підзаголовки блоків у "Документі" виділяємо фірмовою зеленою плашкою з
+   білим текстом (запит менеджерів, 2026-07-27) — щоб назва блоку чітко
+   відділялася від переліку позицій. */
+table.doc-table tr.doc-cat-row td{
+  background: transparent;
+  font-weight:400;
+  color: var(--ink);
+  border-bottom:1px solid var(--line);
+  border-top:1.5px solid var(--line);
+}
+table.doc-table.doc-kv td:first-child{ color:var(--text-muted); }
+table.doc-table.doc-kv td.num{ font-weight:700; color:var(--ink); white-space:normal; }
+table.doc-table tfoot td{
+  font-weight:400;
+  border-top:2px solid var(--green);
+  border-bottom:none;
+  padding-top:8px;
+}
+table.doc-table tfoot tr.grand td{ font-size:14.5px; color:var(--ink); font-weight:800; }
+.doc-img-wrap{ text-align:center; margin:4px 0 0; }
+.doc-img-wrap img{ max-width:100%; border-radius:8px; }
+.doc-img-wrap .cap{ font-size:12px; color:var(--text-muted); margin-top:8px; }
+
+/* "Документ з малюнками" (запит Анни, 2026-07-29): фото розкладки панелей +
+   діаграма генерації в розділі "Технічне рішення". Кожен блок не розриваємо
+   між сторінками при друку; висоту фото обмежуємо, щоб портретна сторінка не
+   переповнювалась високим вертикальним знімком. */
+.doc-visual{ page-break-inside: avoid; break-inside: avoid; }
+.doc-visual-title{ font-size:13px; font-weight:800; color:var(--ink); margin:16px 0 8px; }
+.doc-img-wrap.doc-visual{ text-align:left; }
+.doc-img-wrap.doc-visual img{ max-height:150mm; object-fit:contain; }
+.doc-chart-block{ margin-top:4px; }
+.doc-chart-wrap{
+  position:relative;
+  height:300px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:14px 12px 10px;
+}
+
+/* Пояснювальна плашка під таблицею "Бюджет реалізації" (формат "Документ",
+   запит Анни 2026-07-27) — виділений блок у фірмовому зеленому із зеленими
+   маркерами-крапками. page-break-inside:avoid — щоб при друку блок не
+   розривався між сторінками. */
+.doc-budget-note{
+  margin:14px 0 0;
+  padding:14px 18px;
+  background: var(--tint);
+  border-left:4px solid var(--green);
+  border-radius:8px;
+  font-size:13.5px;
+  line-height:1.5;
+  color:var(--ink-2);
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.doc-budget-note .dbn-intro{ margin:0 0 8px; font-weight:700; color:var(--green-dark); }
+.doc-budget-note .dbn-list{ list-style:none; margin:0 0 10px; padding:0; }
+.doc-budget-note .dbn-list li{ position:relative; padding-left:22px; margin:5px 0; }
+.doc-budget-note .dbn-list li::before{
+  content:"";
+  position:absolute; left:4px; top:0.42em;
+  width:9px; height:9px;
+  border-radius:50%;
+  background: var(--green);
+  box-shadow:0 0 0 3px var(--tint-2);
+}
+.doc-budget-note .dbn-pay{ margin:0; }
+/* Порожня плашка довільного коментаря у варіанті "Заміри" (запит Анни,
+   2026-08-04) — той самий фірмовий зелений стиль, що й .doc-budget-note.
+   За замовчуванням порожня: на екрані показується пунктиром з підказкою,
+   а коли порожня — у друк/PDF не потрапляє (@media print нижче). */
+.doc-budget-comment{
+  margin:14px 0 0;
+  padding:12px 18px;
+  background: var(--tint);
+  border-left:4px solid var(--green);
+  border-radius:8px;
+  font-size:13.5px;
+  line-height:1.5;
+  color:var(--ink-2);
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+.doc-budget-comment:empty{ border-left-style:dashed; min-height:1.2em; }
+.doc-budget-comment:empty::before{
+  content:"Коментар (за потреби заповніть у режимі «Редагувати»)";
+  color:#9aa3ad;
+}
+@media print{
+  .doc-budget-comment:empty{ display:none !important; }
+}
+.doc-manager{
+  margin-top:12px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+  font-size:13px;
+  color:var(--text-muted);
+  line-height:1.7;
+}
+.doc-manager b{ color:var(--ink); }
+
+/* ===== Режим ручного редагування (кнопка «Редагувати», запит Анни
+   2026-07-27) ===== Стилі підсвічування діють ЛИШЕ під .kp-editing, тож у
+   збереженому PDF (режим вимикається перед експортом у app.js) жодних
+   рамок не видно. Кнопка в активному стані стає суцільно-зеленою. */
+#btn-edit.active{ background: var(--green); color:#fff; border-color: var(--green); }
+.kp-editing [contenteditable="true"]{
+  outline: 1px dashed rgba(5,85,75,.45);
+  outline-offset: 1px;
+  border-radius: 2px;
+  cursor: text;
+}
+.kp-editing [contenteditable="true"]:hover{ background: rgba(5,85,75,.08); }
+.kp-editing [contenteditable="true"]:focus{
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+  background: rgba(5,85,75,.12);
+}
+
+@media print{
+  *{
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  body{ background:#fff; }
+  .no-print{ display:none !important; }
+  .kp-editing [contenteditable]{ outline:none !important; background:none !important; }
+  .kp-page{
+    box-shadow:none;
+    margin:0;
+    width:auto;
+    min-height:auto;
+    page-break-after: always;
+  }
+  .kp-page:last-child{ page-break-after: auto; }
+  .doc-root{
+    box-shadow:none;
+    margin:0;
+    width:auto;
+    padding:0;
+    page: doc-page;
+  }
+  table.doc-table thead{ display: table-header-group; }
+  table.doc-table tfoot{ display: table-row-group; }
+  .doc-section-avoid-break{ page-break-inside: avoid; break-inside: avoid; }
+  /* "Бюджет реалізації" завжди починається з нової сторінки при друку
+     (запит Анни 2026-07-30) — у форматах "Документ" та "Документ з
+     малюнками". :first-child — щоб не лишати порожню першу сторінку, якщо
+     бюджет раптом стане першим блоком. */
+  .doc-section-break-before{ page-break-before: always; break-before: page; }
+  .doc-section-break-before:first-child{ page-break-before: auto; break-before: auto; }
+}
+@page{ size: A4 landscape; margin: 0; }
+@page doc-page{ size: A4 portrait; margin: 16mm 15mm; }

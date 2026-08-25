@@ -792,6 +792,49 @@
       if (qty <= 0 && (!price || price === 0)) return;
       const g = groups ? findKoshtorysGroup(groups, it.name) : null;
       const detail = g && g.items && g.items.length ? g.items : null;
+
+      // Детальний режим (галочка "Детальні ціни за позиціями", m.detailedPrices,
+      // запит Анни 2026-08-24) — за замовчуванням ВИМКНЕНО. Коли увімкнено, для
+      // середніх блоків із переліком у Кошторисі показуємо КОЖНУ позицію з
+      // обчисленою Ціною (Кошторис col G → $ × (1+націнка блоку)) та Вартістю
+      // (=Ціна×к-сть). Заголовок+сума блоку прибираються (noHeader) — рядки
+      // самі формують блок. Загальний підсумок КП НЕ змінюється (лишається
+      // b.nettoTotal). Курс: G у гривнях ділимо на L2 (b.usdRate); "$..." — as-is.
+      // Поза детальним режимом — звичайний push нижче (сума блоку + перелік
+      // без цін, зі згортанням/бледним заголовком у docBudgetTable).
+      if (m.detailedPrices && detail && /pv\s*кабел|автоматика\s+захисту|кабельно-?провідник|облік|заземленн/i.test(it.name)) {
+        const rate = Number((b && b.usdRate) || m.usdRate) || 1;
+        const mkRaw = Number(it.markup) || 0;
+        const mkFrac = mkRaw > 1 ? mkRaw / 100 : mkRaw;
+        const _pnum = (str) => parseFloat(String(str == null ? "" : str).replace(/[^0-9.,]/g, "").replace(/^\.+/, "").replace(/,/g, "")) || 0;
+        const keepCents = /pv\s*кабел/i.test(String(it.name || ""));
+        const priced = detail.map((d) => {
+          const raw = String(d.price == null ? "" : d.price);
+          const num = _pnum(raw);
+          const usd = /\$/.test(raw) ? num : (rate ? num / rate : 0);
+          const unit = usd * (1 + mkFrac);
+          const q = Number(d.qty) || 0;
+          const _lineDisp = (keepCents || Math.round(unit) < 1) ? Math.round(unit * q) : Math.round(unit) * q;
+          return Object.assign({}, d, { _unit: unit, _lineDisp: _lineDisp, _costL2: usd * q, _h: _pnum(d.koshtH), _priceMissing: num === 0 });
+        });
+        sections.push({
+          items: priced,
+          nameFn: budgetDetailNames,
+          qtyFn: budgetDetailQty,
+          unitFn: (d) => d._unit,
+          lineFn: (d) => d._lineDisp,
+          price: null,
+          noHeader: true,
+          label: it.name,
+          groupClass: "grp-mat",
+          detailPriced: true,
+          blockTotal: price,
+          blockMarkup: mkFrac,
+          unitMeasure: matUnit,
+        });
+        return;
+      }
+
       sections.push({
         items: detail || [],
         nameFn: budgetDetailNames,
@@ -1433,7 +1476,59 @@
       ? [{ label: "Найменування" }, { label: "Од. виміру" }, { label: "Кількість", num: true }, { label: unitHeader, num: true }, { label: priceHeader, num: true }]
       : [{ label: "Найменування" }, { label: "Кількість", num: true }, { label: unitHeader, num: true }, { label: priceHeader, num: true }];
 
-    return docTable(head, body, totalsHtml) + docBudgetDisclaimer(m);
+    // Службова перевірка сум — ЛИШЕ у детальному режимі (m.detailedPrices) і
+    // ЛИШЕ на екрані (.no-print, у PDF/друку не показується). Порівнює суму
+    // показаних "Вартість" із «Загальною вартістю» й діагностує причину
+    // розбіжності по кожному детальному блоку (курс / неповний перелік) +
+    // позначає проблемні позиції (немає ціни / не сходиться з Кошторисом).
+    let _note = "";
+    if (m.detailedPrices) {
+      let _colSum = 0; const _blockChecks = [];
+      sections.forEach((sec) => {
+        const hasDetail = sec.items && sec.items.length;
+        if (!sec.noHeader && sec.price != null) _colSum += Number(sec.price) || 0;
+        if (hasDetail && sec.lineFn) {
+          let s2 = 0; sec.items.forEach((it) => { const l = sec.lineFn(it); if (l != null && !isNaN(l)) s2 += Number(l); });
+          _colSum += s2;
+          if (sec.detailPriced && sec.blockTotal != null) _blockChecks.push({ sec: sec, shown: s2, block: Number(sec.blockTotal) || 0 });
+        }
+      });
+      const _r2 = (x) => Math.round(x * 100) / 100;
+      const _TOL = 1;
+      const _rows = [];
+      const _cd = _r2(_colSum - (Number(b.nettoTotal) || 0));
+      if (Math.abs(_cd) > _TOL) _rows.push("Сума позицій: " + fmtUsd(_colSum) + " проти «Загальна вартість» " + fmtUsd(b.nettoTotal) + " — розбіжність " + fmtUsd(_cd));
+      _blockChecks.forEach((c) => {
+        const d = _r2(c.shown - c.block);
+        if (Math.abs(d) <= _TOL) return;
+        const mk = 1 + (Number(c.sec.blockMarkup) || 0);
+        const items = c.sec.items || [];
+        let sumH = 0, sumCostL2 = 0;
+        items.forEach((it) => { sumH += Number(it._h) || 0; sumCostL2 += Number(it._costL2) || 0; });
+        const blockCost = mk ? c.block / mk : 0;
+        const ratePart = _r2((sumCostL2 - sumH) * mk);
+        const coverPart = _r2((sumH - blockCost) * mk);
+        const parts = [];
+        if (Math.abs(ratePart) > _TOL) parts.push("курс " + fmtUsd(ratePart));
+        if (Math.abs(coverPart) > _TOL) parts.push("неповний перелік " + fmtUsd(coverPart));
+        const flags = [];
+        items.forEach((it) => {
+          const q = Number(it.qty) || 0;
+          const nm = "«" + esc(String(it.name || "").slice(0, 32)) + "»";
+          if (it._priceMissing && q > 0) { flags.push(nm + ": є к-сть, немає ціни"); return; }
+          const h = Number(it._h) || 0, cc = Number(it._costL2) || 0;
+          if (h > 0 && cc > 0) { const ratio = cc / h; if (ratio < 0.7 || ratio > 1.4) flags.push(nm + ": ціна не сходиться з Кошторисом (валюта/значення?)"); }
+          else if (h > 0 && cc === 0) flags.push(nm + ": немає ціни або кількості");
+        });
+        let line = esc(c.sec.label) + ": розбіжність " + fmtUsd(d);
+        if (parts.length) line += " — " + parts.join(", ");
+        if (flags.length) line += "; ⚠ " + flags.join("; ");
+        _rows.push(line);
+      });
+      _note = _rows.length ? ('<div class="no-print" style="margin:8px 0;padding:8px 10px;border:1px solid #d9a300;background:#fff8e1;color:#7a5b00;font-size:12px;border-radius:4px;line-height:1.5;">⚠ Перевірка сум (лише на екрані, у PDF/друку не показується):<br/>' + _rows.join("<br/>") + "</div>") : "";
+    }
+
+    return docTable(head, body, totalsHtml) + _note + docBudgetDisclaimer(m);
   }
 
   // Пояснювальна плашка під таблицею "Бюджет реалізації" у форматі

@@ -238,7 +238,13 @@
       // data.budgetDetail (fail-soft: null, якщо вкладка не читається/не
       // має очікуваної структури — сторінка "03" тоді сама впаде назад на
       // стандартний хардкод-список, див. kp-render.js).
-      const budgetDetailOn = document.getElementById("in-budget-detail").checked;
+      // "Детальні ціни за позиціями" (запит Анни, 2026-08-24) — окрема галочка,
+      // за замовчуванням вимкнена. Коли увімкнено, у середніх блоках бюджету
+      // кожна позиція показується з обчисленою Ціною/Вартістю + службова
+      // перевірка сум (kp-render). Детальні ціни потребують переліку з
+      // Кошторису, тож ця галочка примусово вмикає завантаження budgetDetail.
+      const detailedPricesOn = document.getElementById("in-detailed-prices").checked;
+      const budgetDetailOn = document.getElementById("in-budget-detail").checked || detailedPricesOn;
       // "Без сонячних панелей" (запит Анни, 2026-07-22) — див. коментар
       // над полем #in-no-panels в index.html. За замовчуванням (чекбокс
       // вимкнено) hasPanels = true, тобто нинішня поведінка не міняється.
@@ -363,6 +369,7 @@
         // (kp-render.js pageCover) замість кількості акумуляторів.
         accumulatorCapacityKwh: data.accumulatorCapacityKwh,
         budgetDetail: data.budgetDetail || null,
+        detailedPrices: detailedPricesOn,
         pvsystImage,
         seasonalHourly,
         clientMode: mode,

@@ -2,9 +2,8 @@
 // "Google Cloud / Sheets API" — як отримати GOOGLE_API_KEY.
 window.KP_CONFIG = {
   // Ключ Google Cloud API з увімкненим Google Sheets API (лише читання).
-  // Той самий проєкт можна перевикористати з ses-calculator (там уже є
-  // ключ для Maps API) — просто увімкни там ще й "Google Sheets API".
-  GOOGLE_API_KEY: "AIzaSyDrh0z0gHcxjcGVVsIeLqxe7XiNr9gL_ls",
+ 
+  GOOGLE_API_KEY: "AIzaSyA4RcQ7YxHfCu1X3thnZhB0Fqf6JaUd1w0",
 
   // Назви вкладок у файлі-розрахунку — мають співпадати з реальними
   // назвами вкладок у Google Sheets. Якщо назви вкладок трохи відрізняються

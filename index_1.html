@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Генератор КП — ESCORE</title>
+<!-- Порожня іконка: без цього браузер сам підвантажує /favicon.ico з кореня
+     домену (escoreodessa.github.io), якого там нема, — і це 404 в консолі
+     при кожному відкритті сайту. Не впливає на роботу генератора. -->
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="style.css" />
+<!-- Обов'язково UMD-збірка (chart.umd.min.js), не chart.min.js: з версії 4.x
+     "chart.min.js" на cdnjs — це ES-модуль, і звичайний <script> без
+     type="module" впаде з "Cannot use import statement outside a module". -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+<!-- pdf.js — рендер сторінки завантаженого PDF-звіту (PvSyst.pdf з Google
+     Drive) у картинку для сторінки "04" КП. Пінено на 3.11.174: новіші
+     збірки pdf.js — лише ES-модулі й ламаються під звичайним <script>
+     без type="module" (та сама причина, що й з Chart.js вище). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- html2canvas + jsPDF — рендер КП у PDF "як є" на екрані (запит Анни,
+     2026-07-13, після двох невдалих спробпполагодити нативний друк
+     браузера: перша сторінка друкувалась суцільно білою (position:absolute-елементи не дають .kp-page висоти, коли
+     @media print скидає min-height у auto — сторінка "схлопується" в 0),
+     а сторінка "Бюджет реалізації" (використовує display:grid для
+     колонки таблиці + колонки приміток) "перетікала" на сирітську
+     сторінку без заголовка, бо Chrome під час друку часто не вміє
+     розбивати grid-контейнери по межі сторінки — переносить їх цілкоп.
+     Замість того щоб ганятись за кожним новим сюрпризом @media print
+     окремо, кожна .kp-page тепер рендериться html2canvas() у картинку
+     ТОЧНО як показано на екрані (жодні правила друку не задіяні), і
+     картинки вставляються в PDF одна на сторінку через jsPDF — це
+     гарантує, що PDF завжди виглядає так само, як прев'ю на екрані,
+     незалежно від того, як конкретний браузер друкує CSS. Кнопка "Друк /
+     зберегти як PDF" тепер викликає це замість window.print() (див.
+     js/app.js, handleSavePdf()). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+  window.addEventListener("DOMContentLoaded", function () {
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    }
+  });
+</script>
+</head>
+<body>
+
+<div class="form-shell no-print">
+  <h1>Генератор комерційної пропозиції — СЕС</h1>
+  <p class="sub">Вкажіть посилання на файл-розрахунок (Google Sheets), за бажанням додайте зображення розташування панелей — і сформуйте брендоване КП.</p>
+
+  <div class="field">
+    <label>Посилання на Google Sheet з розрахунком</label>
+    <input type="url" id="in-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    <div class="hint">Таблиця має бути відкрита «за посиланням». Вкладки мають називатись «ПДВ» і «Моделювання Фін. показників роботи СЕС» (див. js/config.js).</div>
+  </div>
+
+  <div class="field">
+    <label>Тип розрахунку</label>
+    <div class="mode-toggle">
+      <label class="mode-opt"><input type="radio" name="in-mode" value="pdv" checked /><span>ПДВ</span></label>
+      <label class="mode-opt"><input type="radio" name="in-mode" value="cash" /><span>C</span></label>
+    </div>
+  </div>
+
+  <!-- "Документ" (запит Анни, 2026-07-19) — незалежний від тумблера ПДВ/C і
+       від "Розширеного бюджету" перемикач формату виводу. Обидва формати
+       читають ОДНІ й ТІ САМІ дані (той самий model з loadCalcFromSheet) —
+       "Презентація" рендерить нинішні 8-11 альбомних "слайдів" через
+       render() і друкує html2canvas+jsPDF; "Документ" рендерить компактний
+       портретний текст+таблиці через renderDocument() і друкує НАТИВНИМ
+       браузерним друком (window.print()), бо в документа немає фіксованих
+       "слайдів" — контент природно переливається між сторінками, з чим
+       браузери й так добре справляються (див. детальний план у пам'яті
+       kp_generator_document_mode_plan). app.js розгалужує обидва виклики
+       (render vs renderDocument, jsPDF-пайплайн vs window.print()) за цим
+       значенням. -->
+  <div class="field">
+    <label>Формат КП</label>
+    <div class="mode-toggle">
+      <label class="mode-opt"><input type="radio" name="in-format" value="presentation" checked /><span>Презентація</span></label>
+      <label class="mode-opt"><input type="radio" name="in-format" value="document" /><span>Документ</span></label>
+      <label class="mode-opt"><input type="radio" name="in-format" value="document-images" /><span>Документ з малюнками</span></label>
+    </div>
+  </div>
+
+  <!-- "Розширений бюджет" (запит Анни, 2026-07-18) — незалежний від
+       тумблера ПДВ/C чекбокс. Коли увімкнено, група "Витратні матеріали"
+       на сторінці "03 Бюджет реалізації" розшифровується по комплектуючим
+       (дані — вкладка "Кошторис_Наявність обладнання", див. sheets.js
+       parseKoshtorysDetail/findBudgetDetailPrices). -->
+  <div class="field">
+    <label class="checkbox-field"><input type="checkbox" id="in-budget-detail" /> Розширений бюджет (розшифровка «Витратні матеріали» по комплектуючим)</label>
+  </div>
+
+  <!-- "Детальні ціни за позиціями" (запит Анни, 2026-08-24) — за замовчуванням
+       ВИМКНЕНО. Коли увімкнено, у середніх блоках бюджету кожна позиція
+       Кошторису показується з обчисленою Ціною та Вартістю (Ціна = Кошторис
+       col G → $ × (1+націнка блоку)), + службова жовта плашка перевірки сум
+       (лише на екрані, у PDF не друкується). Працює в усіх трьох форматах.
+       Потребує переліку з Кошторису, тож автоматично вмикає завантаження
+       Розширеного бюджету (див. app.js). -->
+  <div class="field">
+    <label class="checkbox-field"><input type="checkbox" id="in-detailed-prices" /> Детальні ціни за позиціями (Ціна/Вартість кожної позиції середніх блоків)</label>
+  </div>
+
+  <!-- Валюта бюджету (запит Анни, 2026-09-04) — розвилка $/грн у таблиці
+       "Бюджет реалізації". Діє ЛИШЕ у форматах "Документ" / "Документ з
+       малюнками" (у "Презентації" ігнорується — там завжди $). За
+       замовчуванням "$" — нинішня поведінка не міняється. У режимі "грн"
+       усі суми бюджету (обладнання, середні блоки, роботи, підсумки)
+       множаться на курс L2 з вкладки "Моделювання Фін. показників роботи
+       СЕС", а позиції-розшифровки рахуються за формулою
+       (G/L2 − (G/L2)/6) × (1 + націнка блоку). Символ валюти → ₴,
+       без округлення до цілих. -->
+  <div class="field">
+    <label>Валюта бюджету (Документ)</label>
+    <div class="mode-toggle">
+      <label class="mode-opt"><input type="radio" name="in-currency" value="usd" checked /><span>$</span></label>
+      <label class="mode-opt"><input type="radio" name="in-currency" value="uah" /><span>грн</span></label>
+    </div>
+  </div>
+
+  <!-- "Заміри / Немає замірів" (запит Анни, 2026-07-27) — впливає ЛИШЕ на
+       пояснювальну плашку під таблицею "Бюджет реалізації" у форматі
+       "Документ" (kp-render.js docBudgetDisclaimer). "Немає замірів"
+       (за замовчуванням, нинішня поведінка) — повний блок: "Остаточна
+       вартість ... може бути скоригована після:" + перелік пунктів + рядок
+       про оплату. "Заміри" (заміри вже зроблено, вартість не
+       коригуватиметься) — лишається ТІЛЬКИ рядок "Оплата здійснюється в
+       національній валюті за комерційним курсом на дату виконання платежу." -->
+  <div class="field">
+    <label>Заміри на об'єкті</label>
+    <div class="mode-toggle">
+      <label class="mode-opt"><input type="radio" name="in-measured" value="no" checked /><span>Немає замірів</span></label>
+      <label class="mode-opt"><input type="radio" name="in-measured" value="yes" /><span>Заміри</span></label>
+    </div>
+  </div>
+
+  <!-- "Без сонячних панелей" (запит Анни, 2026-07-22) — незалежний чекбокс
+       для розрахунків без генерації (напр. лише акумуляторна система).
+       Коли увімкнено (формат "Презентація"): на обкладинці ховаються
+       картки "Панелі" й "Потужність масиву фотомодулів", на сторінці
+       "02 Фінансові показники" не додається до документа взагалі (вона
+       вся про економію від генерації, без панелей — нема що показувати).
+       За замовчуванням вимкнено (є панелі) — не змінює поточну поведінку
+       для звичних файлів. Формату "Документ" наразі не стосується (там
+       уже є власний чекбокс "Фінансові показники" в "Розділах КП"). -->
+  <div class="field">
+    <label class="checkbox-field"><input type="checkbox" id="in-no-panels" /> Без сонячних панелей (немає генераціз)</label>
+  </div>
+
+  <!-- "Розділи КП" (запит Анни, 2026-07-20) — наразі впливає ЛИШЕ на формат
+       "Документ" (renderDocument() у kp-render.js); формат "Презентація"
+       поки не чіпаємо — за домовленістю з Анною повернемось до цього
+       пізніше. За замовчуванням усі 4 чекбокси увімкненіW. Якщо менеджер
+       жодного з них руками не чіпав, app.js сам знімає позначку з розділу,
+       для якого в щойно завантаженому файлі-розрахунку немає відповідних
+       даних (напр. "Фінансові показники", коли клієнту рахували лише
+       обладнання, без тарифу/моделі) — див. js/app.js,
+       wireSectionCheckboxes()/resolveSections(). Будь-який чекбокс, який
+       менеджер сам поставив чи зняв, "розумний дефолт" більше НЕ чіпає. -->
+  <div class="field">
+    <label>Розділи КП (поки що діє лише для формату «Документ»)</label>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <label class="checkbox-field"><input type="checkbox" id="in-sec-tech" checked /> Технічне рішення / технічні характеристики</label>
+      <label class="checkbox-field"><input type="checkbox" id="in-sec-finance" checked /> Фінансові показники</label>
+      <label class="checkbox-field"><input type="checkbox" id="in-sec-budget" checked /> Бюджет реалізації</label>
+      <label class="checkbox-field"><input type="checkbox" id="in-sec-warranty" checked /> Гарантійний термін та термін використання</label>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Посилання на звіт PVsyst.pdf (Google Drive)</label>
+    <input type="url" id="in-pvsyst-url" placeholder="https://drive.google.com/file/d/..." />
+    <div class="hint">Необов'язково. Файл має бути відкритий «за посиланням». У КП автоматично додасться сторінка «04» зі скріншотом 5-ї сторінки цього звіту (карта затінення/3D-модель об'єкта).</div>
+  </div>
+
+  <div class="field">
+    <label>Посилання на файл із сезонними погодинними графіками (Google Sheets)</label>
+    <input type="url" id="in-seasonal-url" placeholder="https://docs.google.com/spreadsheets/d/..." />
+    <div class="hint">Необов'язково. Файл має бути відкритий «за посиланням». У КП автоматично додасться сторінка «05» з порівнянням погодинної генерації за січень/квітень/липень/жовтень.</div>
+  </div>
+
+  <div class="field">
+    <label>Зображення розташування панелей / візуалізація</label>
+    <div class="dropzone" id="drop-images">
+      <input type="file" id="in-images" accept="image/*" multiple />
+      <div class="dropzone-hint">Перетягніть картинку(и) сюди або натисніть, щоб вибрати файл</div>
+    </div>
+    <div class="thumb-list" id="img-thumbs"></div>
+  </div>
+
+  <!-- "Додаткова сторінка" (запит Анни, 2026-08-14) — окрема сторінка в кінці
+       КП (перед контактами менеджера) з довільними скріншотами/зображеннями
+       для непередбаченої інформації. Працює у всіх трьох форматах. Показується
+       лише коли чекбокс увімкнено І завантажено хоч один файл. -->
+  <div class="field">
+    <label class="checkbox-field"><input type="checkbox" id="in-extra-page" /> Додаткова сторінка (довільні скріншоти / зображення / PDF)</label>
+  </div>
+  <div class="field">
+    <label>Файли для додаткової сторінки (зображення або PDF, можна кілька)</label>
+    <div class="dropzone" id="drop-extra">
+      <input type="file" id="in-extra-images" accept="image/*,application/pdf,.pdf" multiple />
+      <div class="dropzone-hint">Перетягніть зображення або PDF сюди чи натисніть, щоб вибрати файли (кожна сторінка PDF стане окремою сторінкою КП)</div>
+    </div>
+    <div class="thumb-list" id="extra-thumbs"></div>
+  </div>
+
+  <div class="row3">
+    <div class="field"><label>Об'єкт</label><input type="text" id="in-object" placeholder="напр. Сонячна станція для АТБ" /></div>
+    <div class="field"><label>Адреса</label><input type="text" id="in-address" placeholder="м. Одеса, ..." /></div>
+    <div class="field"><label>Замовник</label><input type="text" id="in-client" placeholder="(якщо відомо)" /></div>
+  </div>
+  <div class="row3">
+    <div class="field"><label>№ КП (якщо порожньо — згенерується)</label><input type="text" id="in-kpnum" /></div>
+    <div class="field"><label>Термін дії пропозиції, днів</label><input type="number" id="in-validdays" value="14" /></div>
+  </div>
+  <div class="row3">
+    <div class="field"><label>Ставка ПДВ, %</label><input type="number" id="in-vat" value="20" /></div>
+    <div class="field"><label>Передоплата, %</label><input type="number" id="in-prepay" value="70" /></div>
+    <div class="field"><label>Тариф заміщення, $/кВт·год</label><input type="number" id="in-tariff" step="0.01" value="0.33" /></div>
+  </div>
+
+  <div class="actions">
+    <button class="btn" id="btn-generate">Сформувати КП</button>
+    <button class="btn secondary" id="btn-edit" style="display:none;">✏ Редагувати</button>
+    <button class="btn secondary" id="btn-print">Друк / зберегти як PDF</button>
+    <span class="status-msg" id="status"></span>
+  </div>
+</div>
+
+<div id="kp-doc"></div>
+
+<!-- Локальні скрипти вантажимо з міткою свіжості (?v=timestamp), щоб браузер
+     ЗАВЖДИ брав актуальну версію після деплою й не показував старий кеш
+     (запит Анни, 2026-08-04: після деплою зміни не було видно без „жорсткого
+     оновлення“ — бо URL скриптів не змінювався й браузер брав їх із кешу).
+     document.write під час первинного парсингу вантажить їх синхронно й
+     СТРОГО по черзі — точно як звичайні <script> вище, тож порядок і момент
+     виконання (до DOMContentLoaded) збережені. -->
+<script>
+(function () {
+  var v = Date.now();
+  var files = ["js/logo.js","js/config.js","js/sheets.js","js/drive.js","js/pdf-report.js","js/seasonal.js","js/images.js","js/kp-render.js","js/app.js"];
+  for (var i = 0; i < files.length; i++) {
+    document.write('<script src="' + files[i] + '?v=' + v + '"><\/script>');
+  }
+})();
+</script>
+</body>
+</html>

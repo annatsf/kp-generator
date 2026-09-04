@@ -847,3 +847,21 @@ table.doc-table tfoot tr.grand td{ font-size:14.5px; color:var(--ink); font-weig
 }
 @page{ size: A4 landscape; margin: 0; }
 @page doc-page{ size: A4 portrait; margin: 16mm 15mm; }
+
+/* Редаговані вручну клітинки Ціна/Вартість у розшифровці бюджету («Документ»):
+   видима рамка-підказка на екрані, у друку/PDF — прибирається. */
+.doc-cell-edit{ outline: 1px dashed #c9b878; outline-offset: -3px; background: #fffdf3; min-width: 54px; }
+.doc-cell-edit:focus{ outline: 2px solid #6b8f71; background: #fff; }
+@media print{ .doc-cell-edit{ outline: none; background: transparent; } }
+
+/* Ціна/Вартість, редаговані вручну в КОЖНІЙ позиції всіх форматів
+   (.kp-price-edit, запит Анни 2026-08-24): без постійного вигляду (щоб не
+   потрапляло у PDF «Презентації» через html2canvas), лише курсор-текст +
+   підсвічування при наведенні/фокусі; у друку прибирається. */
+.kp-price-edit{ cursor: text; }
+.kp-price-edit:hover{ outline: 1px dashed rgba(5,85,75,.4); outline-offset: -2px; }
+.kp-price-edit:focus{ outline: 2px solid #05554b; outline-offset: -2px; background: rgba(5,85,75,.06); }
+@media print{ .kp-price-edit:hover, .kp-price-edit:focus{ outline: none; background: transparent; } }
+
+
+

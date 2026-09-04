@@ -81,9 +81,12 @@
         el.setAttribute("contenteditable", "true")
       );
     } else {
-      // Знімаємо редагування з усіх полів (зокрема зашитих у розмітці).
+      // Знімаємо редагування з усіх полів (зокрема зашитих у розмітці),
+      // АЛЕ клітинки Ціна/Вартість розшифровки бюджету (.doc-cell-edit,
+      // запит Анни 2026-08-24) лишаються редагованими ЗАВЖДИ — щоб менеджер
+      // міг вписувати ціни по позиціях руками без вмикання режиму правки.
       doc.querySelectorAll("[contenteditable]").forEach((el) =>
-        el.setAttribute("contenteditable", "false")
+        el.setAttribute("contenteditable", (el.classList.contains("doc-cell-edit") || el.classList.contains("kp-price-edit")) ? "true" : "false")
       );
     }
     const btn = document.getElementById("btn-edit");
@@ -257,6 +260,14 @@
       const measuredInput = document.querySelector('input[name="in-measured"]:checked');
       const measured = measuredInput ? measuredInput.value === "yes" : false;
 
+      // Валюта бюджету (запит Анни, 2026-09-04) — розвилка $/грн. Діє ЛИШЕ у
+      // форматах "Документ" / "Документ з малюнками"; у "Презентації" завжди
+      // "$" (usd), щоб не міняти її вигляд. За замовчуванням "$".
+      const currencyInput = document.querySelector('input[name="in-currency"]:checked');
+      const currencyRaw = currencyInput ? currencyInput.value : "usd";
+      const isDocFormat = format === "document" || format === "document-images";
+      const budgetCurrency = isDocFormat && currencyRaw === "uah" ? "uah" : "usd";
+
       setStatus("Читаємо Google Sheet...");
       const data = await KpSheets.loadCalcFromSheet(sheetUrl, mode, { budgetDetail: budgetDetailOn });
       const pdv = data.pdv, modelData = data.model;
@@ -370,6 +381,7 @@
         accumulatorCapacityKwh: data.accumulatorCapacityKwh,
         budgetDetail: data.budgetDetail || null,
         detailedPrices: detailedPricesOn,
+        budgetCurrency,
         pvsystImage,
         seasonalHourly,
         clientMode: mode,

@@ -29,6 +29,31 @@
     n === null || n === undefined || isNaN(n) ? "—" : Number(n).toLocaleString("uk-UA", { maximumFractionDigits: d });
   const esc = (s) => String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 
+  // Валюта бюджету (запит Анни, 2026-09-04) — розвилка $/грн у таблиці
+  // "Бюджет реалізації" форматів "Документ" / "Документ з малюнками".
+  // Усередині всі суми зберігаються в доларах (як і раніше); тут вони
+  // множаться на курс L2 (b.usdRate з вкладки "Моделювання Фін. показників
+  // роботи СЕС") і отримують символ ₴, коли m.budgetCurrency === "uah".
+  // У режимі "$" (за замовчуванням) rate=1, символ "$" — вигляд не міняється.
+  // Округлення НЕ робимо (запит Анни): копійки показуємо лише коли є дробова
+  // частина, цілі суми лишаються без ".00" — так Σ позицій сходиться з
+  // підсумком блоку, а вигляд для круглих чисел не засмічується.
+  function budgetCurrency(m, b) {
+    const uah = !!(m && m.budgetCurrency === "uah");
+    const rawRate = Number(b && b.usdRate);
+    const rate = uah && rawRate > 0 ? rawRate : 1;
+    const sym = uah ? "₴" : "$"; // ₴ / $
+    const f = (n) => {
+      if (n === null || n === undefined || isNaN(n)) return "—"; // —
+      const v = Number(n) * rate;
+      const r2 = Math.round(v * 100) / 100;
+      return sym + (Number.isInteger(r2)
+        ? r2.toLocaleString("en-US")
+        : r2.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+    };
+    return { uah, rate, sym, f };
+  }
+
   // Назва об'єкта (напр. «Швейні виробництва») тепер показується ЛИШЕ якщо
   // її вписано вручну в поле "Об'єкт" на формі (запит Анни, 2026-07-19) —
   // раніше, коли поле лишалось порожнім, app.js підставляв назву,
@@ -474,7 +499,7 @@
   function budgetHeaderRow(label, price, groupClass) {
     return `<tr class="budget-cat-row ${groupClass}">
       <td colspan="3" class="budget-cat" contenteditable="true">${esc(label)}</td>
-      <td class="num budget-price"><span contenteditable="true">${price != null ? fmtUsd(price) : ""}</span></td>
+      <td class="num budget-price"><span class="kp-price-edit" contenteditable="true">${price != null ? fmtUsd(price) : ""}</span></td>
     </tr>`;
   }
   // Рядок-позиція блоку: назва + кількість + (лише для "Обладнання") ціна
@@ -488,8 +513,8 @@
     return `<tr class="${groupClass}">
       <td contenteditable="true">${esc(name)}</td>
       <td class="num" contenteditable="true">${qty == null ? "—" : fmtNum(qty)}</td>
-      <td class="num" contenteditable="true">${unit != null ? _pf(unit) : ""}</td>
-      <td class="num" contenteditable="true">${line != null ? fmtUsd(line) : ""}</td>
+      <td class="num kp-price-edit" contenteditable="true">${unit != null ? _pf(unit) : ""}</td>
+      <td class="num kp-price-edit" contenteditable="true">${line != null ? fmtUsd(line) : ""}</td>
     </tr>`;
   }
 
@@ -794,28 +819,35 @@
       const detail = g && g.items && g.items.length ? g.items : null;
 
       // Детальний режим (галочка "Детальні ціни за позиціями", m.detailedPrices,
-      // запит Анни 2026-08-24) — за замовчуванням ВИМКНЕНО. Коли увімкнено, для
-      // середніх блоків із переліком у Кошторисі показуємо КОЖНУ позицію з
-      // обчисленою Ціною (Кошторис col G → $ × (1+націнка блоку)) та Вартістю
-      // (=Ціна×к-сть). Заголовок+сума блоку прибираються (noHeader) — рядки
-      // самі формують блок. Загальний підсумок КП НЕ змінюється (лишається
-      // b.nettoTotal). Курс: G у гривнях ділимо на L2 (b.usdRate); "$..." — as-is.
-      // Поза детальним режимом — звичайний push нижче (сума блоку + перелік
-      // без цін, зі згортанням/бледним заголовком у docBudgetTable).
+      // запит Анни 2026-08-24; формулу переглянуто 2026-09-04). Коли увімкнено,
+      // для середніх блоків із переліком у Кошторисі показуємо КОЖНУ позицію з
+      // обчисленою Ціною та Вартістю (=Ціна×к-сть). Заголовок+сума блоку
+      // прибираються (noHeader) — рядки самі формують блок. Загальний підсумок
+      // КП НЕ змінюється (лишається b.nettoTotal).
+      //
+      // ФОРМУЛА (запит Анни, 2026-09-04). G — стовпець "Ціна" Кошторису
+      // (d.price), ЗАВЖДИ трактуємо як гривні. L2 — курс з вкладки
+      // "Моделювання Фін. показників роботи СЕС" (b.usdRate).
+      //   база($) = G / L2
+      //   Ціна($) = (база − база/6) × (1 + націнка_блоку_F)
+      // де −база/6 знімає вхідний ПДВ 20% із закупівельної ціни, а націнка
+      // блоку береться зі стовпця F (ПДВ) / E (Готівка_ФОП) — те саме поле
+      // it.markup (пошук за заголовком "націнка"). Значення зберігаємо в
+      // доларах; перерахунок у ₴ (× L2) і символ валюти робить budgetCurrency()
+      // на рівні відображення. БЕЗ округлення (запит Анни) — щоб Σ позицій
+      // сходилась із сумою блоку L.
       if (m.detailedPrices && detail && /pv\s*кабел|автоматика\s+захисту|кабельно-?провідник|облік|заземленн/i.test(it.name)) {
-        const rate = Number((b && b.usdRate) || m.usdRate) || 1;
+        const l2 = Number((b && b.usdRate) || m.usdRate) || 1;
         const mkRaw = Number(it.markup) || 0;
         const mkFrac = mkRaw > 1 ? mkRaw / 100 : mkRaw;
         const _pnum = (str) => parseFloat(String(str == null ? "" : str).replace(/[^0-9.,]/g, "").replace(/^\.+/, "").replace(/,/g, "")) || 0;
-        const keepCents = /pv\s*кабел/i.test(String(it.name || ""));
         const priced = detail.map((d) => {
-          const raw = String(d.price == null ? "" : d.price);
-          const num = _pnum(raw);
-          const usd = /\$/.test(raw) ? num : (rate ? num / rate : 0);
-          const unit = usd * (1 + mkFrac);
+          const num = _pnum(d.price);          // G у гривнях (стовпець "Ціна" Кошторису)
+          const baseUsd = l2 ? num / l2 : 0;   // G / L2 → долари, ЗАВЖДИ ділимо на курс
+          const unit = (baseUsd - baseUsd / 6) * (1 + mkFrac); // (база − база/6) × (1+F)
           const q = Number(d.qty) || 0;
-          const _lineDisp = (keepCents || Math.round(unit) < 1) ? Math.round(unit * q) : Math.round(unit) * q;
-          return Object.assign({}, d, { _unit: unit, _lineDisp: _lineDisp, _costL2: usd * q, _h: _pnum(d.koshtH), _priceMissing: num === 0 });
+          const _lineDisp = unit * q;          // без округлення
+          return Object.assign({}, d, { _unit: unit, _lineDisp: _lineDisp, _costL2: baseUsd * q, _h: _pnum(d.koshtH), _priceMissing: num === 0 });
         });
         sections.push({
           items: priced,
@@ -1416,8 +1448,11 @@
     const withUM = !!opts.withUnitMeasure;
     const b = m.budget || {};
     const noVat = m.clientMode === "cash";
-    const priceHeader = noVat ? "Вартість, $" : "Вартість без ПДВ, $";
-    const unitHeader = noVat ? "Ціна, $" : "Ціна без ПДВ, $";
+    // Валюта бюджету ($/₴) — розвилка Анни (2026-09-04). cur.f перераховує
+    // збережені в доларах суми (× L2 у режимі "грн") і ставить символ ₴/$.
+    const cur = budgetCurrency(m, b);
+    const priceHeader = noVat ? `Вартість, ${cur.sym}` : `Вартість без ПДВ, ${cur.sym}`;
+    const unitHeader = noVat ? `Ціна, ${cur.sym}` : `Ціна без ПДВ, ${cur.sym}`;
     // Ті самі блоки, що й у "Презентації" (buildBudgetSections): Обладнання
     // + кожна позиція середньої категорії ПДВ (з переліком із Кошторису в
     // розширеному режимі, лише ціна — у звичайному) + Роботи. Колонка "Ціна
@@ -1436,24 +1471,34 @@
         ? ` style="background:#eef1f0;cursor:pointer" onclick="window.__kpBudgetToggle&&window.__kpBudgetToggle('${gid}',this)"`
         : ` style="background:#eef1f0"`;
       const _caret = gid ? `<span class="kp-caret">\u25b8</span> ` : "";
-      return `<tr class="doc-cat-row"${_bg}><td colspan="${catSpan}">${_caret}${esc(label)}</td><td class="num">${price != null ? fmtUsd(price) : ""}</td></tr>`;
+      return `<tr class="doc-cat-row"${_bg}><td colspan="${catSpan}">${_caret}${esc(label)}</td><td class="num kp-price-edit" contenteditable="true">${price != null ? cur.f(price) : ""}</td></tr>`;
     };
     const itemRows = (sec, gid) => {
-      const _pf = fmtUsdSmart;
+      const _pf = cur.f;
       const _hide = gid ? ` data-bg="${gid}" style="display:none"` : "";
       return sec.items.map((it) => {
         const q = sec.qtyFn(it);
         const u = sec.unitFn ? sec.unitFn(it) : null;
         const l = sec.lineFn ? sec.lineFn(it) : null;
         const umCell = withUM ? `<td>${esc(measureOf(sec, it))}</td>` : "";
-        return `<tr${_hide}><td>${esc(sec.nameFn(it))}</td>${umCell}<td class="num">${q == null ? "—" : fmtNum(q)}</td><td class="num">${u != null ? _pf(u) : ""}</td><td class="num">${l != null ? fmtUsd(l) : ""}</td></tr>`;
+        // Ячейки Ціна/Вартість у рядках розшифровки середніх блоків (grp-mat)
+        // — редаговані вручну (запит Анни, 2026-08-24): у розширеному бюджеті
+        // без «Детальних цін» вони порожні, тож менеджер може вписати ціни
+        // по позиціях руками прямо в КП.
+        // Ціна/Вартість у КОЖНІЙ позиції бюджету (обладнання, роботи, середні
+        // блоки) — редаговані вручну ЗАВЖДИ (запит Анни, 2026-08-24): клас
+        // kp-price-edit, якому app.js лишає contenteditable і поза режимом
+        // правки. Порожні клітинки середніх блоків додатково мають doc-cell-edit
+        // — видиму рамку-підказку. У друку/PDF підсвічування прибирається.
+        const _dc = sec.groupClass === "grp-mat" ? " doc-cell-edit" : "";
+        return `<tr${_hide}><td>${esc(sec.nameFn(it))}</td>${umCell}<td class="num">${q == null ? "—" : fmtNum(q)}</td><td class="num kp-price-edit${_dc}" contenteditable="true">${u != null ? _pf(u) : ""}</td><td class="num kp-price-edit${_dc}" contenteditable="true">${l != null ? cur.f(l) : ""}</td></tr>`;
       }).join("");
     };
 
     const midRow = (sec) => {
       const um = withUM ? ('<td>'+esc((sec.blockUnit!=null&&String(sec.blockUnit).trim())?String(sec.blockUnit).trim():(sec.unitMeasure||''))+'</td>') : '';
       const q = sec.blockQty;
-      return '<tr><td>'+esc(sec.label)+'</td>'+um+'<td class=\"num\">'+(q==null?'':fmtNum(q))+'</td><td class=\"num\"></td><td class=\"num\">'+(sec.price!=null?fmtUsd(sec.price):'')+'</td></tr>';
+      return '<tr><td>'+esc(sec.label)+'</td>'+um+'<td class=\"num\">'+(q==null?'':fmtNum(q))+'</td><td class=\"num kp-price-edit doc-cell-edit\" contenteditable=\"true\"></td><td class=\"num kp-price-edit\" contenteditable=\"true\">'+(sec.price!=null?cur.f(sec.price):'')+'</td></tr>';
     };
     let body = "";
     let _gid = 0;
@@ -1467,10 +1512,10 @@
     });
 
     const totalsHtml = noVat
-      ? `<tr class="grand"><td colspan="${catSpan}">Загальна вартість:</td><td class="num">${fmtUsd(b.nettoTotal)}</td></tr>`
-      : `<tr><td colspan="${catSpan}">Разом без ПДВ:</td><td class="num">${fmtUsd(b.nettoTotal)}</td></tr>
-         <tr><td colspan="${catSpan}">ПДВ</td><td class="num">${fmtUsd(b.vat)}</td></tr>
-         <tr class="grand"><td colspan="${catSpan}">Загальна вартість з ПДВ:</td><td class="num">${fmtUsd(b.grossTotal)}</td></tr>`;
+      ? `<tr class="grand"><td colspan="${catSpan}">Загальна вартість:</td><td class="num">${cur.f(b.nettoTotal)}</td></tr>`
+      : `<tr><td colspan="${catSpan}">Разом без ПДВ:</td><td class="num">${cur.f(b.nettoTotal)}</td></tr>
+         <tr><td colspan="${catSpan}">ПДВ</td><td class="num">${cur.f(b.vat)}</td></tr>
+         <tr class="grand"><td colspan="${catSpan}">Загальна вартість з ПДВ:</td><td class="num">${cur.f(b.grossTotal)}</td></tr>`;
 
     const head = withUM
       ? [{ label: "Найменування" }, { label: "Од. виміру" }, { label: "Кількість", num: true }, { label: unitHeader, num: true }, { label: priceHeader, num: true }]
@@ -1497,7 +1542,7 @@
       const _TOL = 1;
       const _rows = [];
       const _cd = _r2(_colSum - (Number(b.nettoTotal) || 0));
-      if (Math.abs(_cd) > _TOL) _rows.push("Сума позицій: " + fmtUsd(_colSum) + " проти «Загальна вартість» " + fmtUsd(b.nettoTotal) + " — розбіжність " + fmtUsd(_cd));
+      if (Math.abs(_cd) > _TOL) _rows.push("Сума позицій: " + cur.f(_colSum) + " проти «Загальна вартість» " + cur.f(b.nettoTotal) + " — розбіжність " + cur.f(_cd));
       _blockChecks.forEach((c) => {
         const d = _r2(c.shown - c.block);
         if (Math.abs(d) <= _TOL) return;
@@ -1509,8 +1554,8 @@
         const ratePart = _r2((sumCostL2 - sumH) * mk);
         const coverPart = _r2((sumH - blockCost) * mk);
         const parts = [];
-        if (Math.abs(ratePart) > _TOL) parts.push("курс " + fmtUsd(ratePart));
-        if (Math.abs(coverPart) > _TOL) parts.push("неповний перелік " + fmtUsd(coverPart));
+        if (Math.abs(ratePart) > _TOL) parts.push("курс " + cur.f(ratePart));
+        if (Math.abs(coverPart) > _TOL) parts.push("неповний перелік " + cur.f(coverPart));
         const flags = [];
         items.forEach((it) => {
           const q = Number(it.qty) || 0;
@@ -1520,7 +1565,7 @@
           if (h > 0 && cc > 0) { const ratio = cc / h; if (ratio < 0.7 || ratio > 1.4) flags.push(nm + ": ціна не сходиться з Кошторисом (валюта/значення?)"); }
           else if (h > 0 && cc === 0) flags.push(nm + ": немає ціни або кількості");
         });
-        let line = esc(c.sec.label) + ": розбіжність " + fmtUsd(d);
+        let line = esc(c.sec.label) + ": розбіжність " + cur.f(d);
         if (parts.length) line += " — " + parts.join(", ");
         if (flags.length) line += "; ⚠ " + flags.join("; ");
         _rows.push(line);

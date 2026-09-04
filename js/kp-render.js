@@ -75,7 +75,7 @@
   function pageHeader(meta, pageLabel) {
     return `
       <div class="kp-header">
-        <img class="logo" src="data:image/png;base64,${ESCORE_LOGO_B64}" alt="escore" />
+        <img class="logo" src="assets/logo.png" alt="logo" />
         <div class="doc-meta">
           <strong>КОМЕРЦІЙНА ПРОПОЗИЦІЯ</strong><br/>
           № ${esc(meta.kpNumber)} · від ${esc(meta.kpDateStr)}<br/>
@@ -95,7 +95,7 @@
     <section class="kp-page hero-page">
       <div class="hero-bg" style="background-image:url('assets/hero-bg.jpg')"></div>
       <div class="hero-overlay"></div>
-      <img class="hero-logo" src="assets/logo-white.png" alt="escore" />
+      <img class="hero-logo" src="assets/logo-white.png" alt="logo" />
       <div class="hero-title">${m.hasPanels === false ? "Джерело безперебійного<br/>живлення" : `${cap(m.tech.stationType)} сонячна<br/>електростанція`}${(m.model.capacityKwByPanels || m.tech.stationCapacityKw) ? `<br/>${fmtNum((m.model.capacityKwByPanels || m.tech.stationCapacityKw), 2)} кВт` : ""}</div>
     </section>`;
   }
@@ -1097,7 +1097,7 @@
   function pageWarranty(m) {
     return `
     <section class="kp-page warranty-page">
-      <img class="logo" src="data:image/png;base64,${ESCORE_LOGO_B64}" alt="escore" />
+      <img class="logo" src="assets/logo.png" alt="logo" />
       <div class="warranty-banner">Гарантійний термін та термін використання</div>
       <div class="warranty-table-wrap">
         ${warrantyTableHtml()}
@@ -1110,7 +1110,7 @@
     const mgr = window.KP_CONFIG.MANAGER;
     return `
     <section class="kp-page manager-page">
-      <img class="logo" src="data:image/png;base64,${ESCORE_LOGO_B64}" alt="escore" />
+      <img class="logo" src="assets/logo.png" alt="logo" />
       <div class="manager-body">
         <div class="manager-photo-col">
           <div class="manager-photo"><img src="${mgr.photo}" alt="${esc(mgr.name)}"/></div>
@@ -1334,7 +1334,7 @@
   function docHeader(m) {
     return `<div class="doc-header">
       <div>
-        <img class="logo" src="data:image/png;base64,${ESCORE_LOGO_B64}" alt="escore" />
+        <img class="logo" src="assets/logo.png" alt="logo" />
         <div class="doc-company">${esc(m.meta.company.name)}</div>
       </div>
       <div class="doc-meta">
